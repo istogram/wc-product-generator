@@ -78,7 +78,7 @@ The plugin uses placeholder image services (like picsum.photos) to generate uniq
 
 ## License
 
-This project is licensed under the GPL v2 or later - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT license - see the [LICENSE](LICENSE) file for details.
 
 ## Credits
 
