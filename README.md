@@ -56,12 +56,6 @@ wp wc clear products
 wp wc get stats
 ```
 
-## Screenshots
-
-![Admin Interface](screenshot-1.png)
-![Generation Process](screenshot-2.png)
-![WP-CLI Commands](screenshot-3.png)
-
 ## Requirements
 
 - WordPress 5.0 or higher
