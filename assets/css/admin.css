@@ -1,0 +1,120 @@
+/**
+ * WooCommerce Product Generator Admin Styles
+ */
+
+ .wc-product-generator-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.wc-product-generator-card h2 {
+    margin-top: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.progress-bar {
+    background-color: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background-color: #2271b1;
+    transition: width 0.3s ease;
+}
+
+#wc-product-generator-notices {
+    margin: 15px 0;
+}
+
+#progress-text {
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.wc-product-generator-footer {
+    margin-top: 30px;
+    color: #646970;
+    font-size: 13px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+.wc-product-generator-footer a {
+    text-decoration: none;
+}
+
+/* Button styles */
+.wc-btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+/* Stats dashboard */
+.wc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.wc-stat-card {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 15px;
+    text-align: center;
+}
+
+.wc-stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #2271b1;
+}
+
+.wc-stat-label {
+    color: #646970;
+    font-size: 14px;
+}
+
+/* Configuration options */
+.wc-config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.wc-config-item {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.wc-config-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Command examples */
+.wc-cli-commands {
+    background: #f0f0f1;
+    padding: 15px;
+    border-radius: 4px;
+    font-family: monospace;
+    overflow-x: auto;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+    .wc-stats-grid, .wc-config-grid {
+        grid-template-columns: 1fr;
+    }
+}

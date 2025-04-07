@@ -1,0 +1,135 @@
+# Copyright (C) 2025 istogram 
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Product Generator 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wc-product-generator\n"
+"Last-Translator: Timos Zabetakis <timoszab@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-04-07T12:00:00+00:00\n"
+"PO-Revision-Date: 2025-04-07 17:24+2\n"
+"X-Generator: WP-CLI 2.7.1\n"
+"X-Domain: wc-product-generator\n"
+
+#: includes/class-wc-product-generator-admin.php:76
+msgid "WooCommerce Product Generator"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:77
+msgid "WC Product Generator"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:153
+msgid "Thank you for installing WooCommerce Product Generator! Go to Tools → WC Product Generator to start generating products."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:173
+msgid "Current Store Statistics"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:177
+msgid "Products"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:182
+msgid "Categories"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:187
+msgid "Tags"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:194
+msgid "Generate Products"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:195
+msgid "Use this tool to generate WooCommerce products with dummy data. For large numbers of products, consider using WP-CLI."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:199
+msgid "Previous generation was interrupted. %d products were generated. You can continue from where you left off or reset the progress counter."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:206
+msgid "Number of Products"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:209
+msgid "For more than 1000 products, please use WP-CLI."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:213
+msgid "Batch Size"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:216
+msgid "Products per batch. Lower values prevent timeouts but take longer."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:220
+msgid "Starting Point"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:225
+msgid "Start fresh from the beginning"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:230
+msgid "Continue from product #%d"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:237
+msgid "Progress:"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:241
+msgid "Preparing..."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:246
+msgid "Generate Products"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:247
+msgid "Stop Generation"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:249
+msgid "Reset Progress Counter"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:256
+msgid "Clear Existing Products"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:257
+msgid "Warning: This will permanently delete all products in your store."
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:260
+msgid "Delete All Products"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:265
+msgid "WP-CLI Commands"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:266
+msgid "For large numbers of products or to avoid timeouts, use WP-CLI:"
+msgstr ""
+
+#: includes/class-wc-product-generator-admin.php:280
+msgid "WooCommerce Product Generator v%s | Made with %s by %s"
+msgstr ""
+
+#: wc-product-generator.php:51
+msgid "WooCommerce Product Generator requires WooCommerce to be installed and activated."
+msgstr ""
+
+#: wc-product-generator.php:157
+msgid "Generator"
+msgstr ""
