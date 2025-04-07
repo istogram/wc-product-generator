@@ -21,6 +21,45 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Debug mode - set to false in production
+define('WC_PRODUCT_GENERATOR_DEBUG', false);
+
+// Make sure the assets directory exists
+function wc_product_generator_check_assets()
+{
+    $images_dir = WC_PRODUCT_GENERATOR_PLUGIN_DIR . 'assets/images';
+
+    // Create directory if it doesn't exist
+    if (!file_exists($images_dir)) {
+        wp_mkdir_p($images_dir);
+    }
+
+    // Create placeholder only if it doesn't exist yet
+    $placeholder_path = $images_dir . '/placeholder.jpg';
+    if (!file_exists($placeholder_path) && function_exists('imagecreatetruecolor')) {
+        $image = imagecreatetruecolor(800, 800);
+        $bg = imagecolorallocate($image, 240, 240, 240);
+        $text = imagecolorallocate($image, 100, 100, 100);
+
+        imagefill($image, 0, 0, $bg);
+
+        // Draw a nicer product outline
+        $outline = imagecolorallocate($image, 200, 200, 200);
+        imagefilledrectangle($image, 250, 250, 550, 550, $outline);
+
+        // Add text
+        $font_size = 5;
+        $text_width = imagefontwidth($font_size) * strlen('Product Image');
+        $text_x = (800 - $text_width) / 2;
+        imagestring($image, $font_size, $text_x, 580, 'Product Image', $text);
+
+        // Save the image
+        imagejpeg($image, $placeholder_path);
+        imagedestroy($image);
+    }
+}
+add_action('plugins_loaded', 'wc_product_generator_check_assets', 5);
+
 // Define plugin constants
 define('WC_PRODUCT_GENERATOR_VERSION', '1.0.0');
 define('WC_PRODUCT_GENERATOR_PLUGIN_DIR', plugin_dir_path(__FILE__));

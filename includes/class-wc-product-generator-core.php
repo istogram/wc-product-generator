@@ -16,6 +16,7 @@ class WC_Product_Generator_Core
     private $tags = ['Featured', 'Sale', 'New', 'Popular', 'Best Seller', 'Limited', 'Organic', 'Handmade', 'Imported', 'Local'];
     private $category_ids = [];
     private $tag_ids = [];
+    private $debug = false;
 
     public function __construct()
     {
@@ -26,6 +27,50 @@ class WC_Product_Generator_Core
 
         // Increase memory limit for large operations
         ini_set('memory_limit', '512M');
+
+        // Set debug mode
+        $this->debug = defined('WC_PRODUCT_GENERATOR_DEBUG') && WC_PRODUCT_GENERATOR_DEBUG;
+
+        // Create assets directory if it doesn't exist
+        $this->maybe_create_assets_directory();
+    }
+
+    /**
+     * Create assets directory if it doesn't exist
+     */
+    private function maybe_create_assets_directory()
+    {
+        $images_dir = WC_PRODUCT_GENERATOR_PLUGIN_DIR . 'assets/images';
+        if (!file_exists($images_dir)) {
+            wp_mkdir_p($images_dir);
+
+            // Try to create a placeholder image if GD is available
+            if (function_exists('imagecreatetruecolor')) {
+                $this->create_placeholder_image($images_dir . '/placeholder.jpg');
+            }
+        }
+    }
+
+    /**
+     * Create a basic placeholder image
+     */
+    private function create_placeholder_image($path)
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            return false;
+        }
+
+        $image = imagecreatetruecolor(800, 800);
+        $bg = imagecolorallocate($image, 240, 240, 240);
+        $text = imagecolorallocate($image, 100, 100, 100);
+
+        imagefill($image, 0, 0, $bg);
+        imagestring($image, 5, 300, 400, 'Product Image', $text);
+
+        imagejpeg($image, $path);
+        imagedestroy($image);
+
+        return file_exists($path);
     }
 
     /**
@@ -171,7 +216,7 @@ class WC_Product_Generator_Core
 
         } catch (Exception $e) {
             // Log the error and rethrow
-            error_log('Error creating product #' . $index . ': ' . $e->getMessage());
+            $this->log_message('Error creating product #' . $index . ': ' . $e->getMessage(), true);
             throw $e;
         }
     }
@@ -282,13 +327,89 @@ class WC_Product_Generator_Core
      */
     private function set_featured_image($product_id)
     {
-        // Use placeholder service for demonstration
-        $width = rand(600, 800);
-        $height = rand(600, 800);
-        $image_url = "https://picsum.photos/{$width}/{$height}";
+        // Try online services first, only fall back to placeholder if they fail
+        $image_services = [
+            // Picsum Photos - Direct URL that doesn't redirect
+            function () {
+                $id = rand(1, 1000);
+                return "https://picsum.photos/id/{$id}/800/800";
+            },
+            // Unsplash Source API
+            function () {
+                return "https://source.unsplash.com/800x800/?product";
+            },
+            // Placeholder service as last resort
+            function () {
+                $width = 800;
+                $height = 800;
+                $bg = dechex(rand(150, 220));
+                $fg = dechex(rand(80, 120));
+                return "https://dummyimage.com/{$width}x{$height}/{$bg}/{$fg}.jpg";
+            }
+        ];
 
-        // Try to get a placeholder image and upload it as product featured image
-        $this->attach_image_from_url($image_url, $product_id, true);
+        // Try each image service in sequence until one works
+        foreach ($image_services as $service) {
+            $image_url = $service();
+
+            // Log attempt
+            $this->log_message('Trying to fetch featured image from: ' . $image_url);
+
+            // Use WordPress HTTP API directly for better handling
+            $response = wp_remote_get($image_url, [
+                'timeout' => 15,
+                'sslverify' => false,
+                'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+            ]);
+
+            if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
+                $upload_dir = wp_upload_dir();
+                $filename = 'product-' . $product_id . '-' . uniqid() . '.jpg';
+                $file_path = $upload_dir['path'] . '/' . $filename;
+
+                // Save the image content to a file
+                $result = file_put_contents($file_path, wp_remote_retrieve_body($response));
+
+                if ($result) {
+                    // Create attachment
+                    $attachment = [
+                        'post_mime_type' => 'image/jpeg',
+                        'post_title' => sanitize_file_name(pathinfo($filename, PATHINFO_FILENAME)),
+                        'post_content' => '',
+                        'post_status' => 'inherit'
+                    ];
+
+                    $attach_id = wp_insert_attachment($attachment, $file_path, $product_id);
+
+                    if (!is_wp_error($attach_id)) {
+                        // Generate attachment metadata
+                        require_once(ABSPATH . 'wp-admin/includes/image.php');
+                        $attach_data = wp_generate_attachment_metadata($attach_id, $file_path);
+                        wp_update_attachment_metadata($attach_id, $attach_data);
+
+                        // Set as featured image
+                        set_post_thumbnail($product_id, $attach_id);
+
+                        $this->log_message('Successfully set featured image for product #' . $product_id . ' using URL: ' . $image_url);
+
+                        return $attach_id;
+                    }
+                }
+            }
+
+            $this->log_message('Failed to set image from: ' . $image_url);
+        }
+
+        // As a last resort, use local placeholder
+        $local_placeholder = WC_PRODUCT_GENERATOR_PLUGIN_DIR . 'assets/images/placeholder.jpg';
+
+        if (file_exists($local_placeholder)) {
+            $this->log_message('Using local placeholder image for product #' . $product_id);
+            return $this->attach_local_image($local_placeholder, $product_id, true);
+        }
+
+        // If all else fails, create a dynamic placeholder
+        return $this->create_and_attach_dynamic_placeholder($product_id, true);
     }
 
     /**
@@ -298,20 +419,121 @@ class WC_Product_Generator_Core
     {
         $gallery_image_ids = [];
 
+        // Try online sources first for each gallery image
         for ($i = 0; $i < $count; $i++) {
-            $width = rand(600, 800);
-            $height = rand(600, 800);
-            $image_url = "https://picsum.photos/{$width}/{$height}";
+            // Different image sources for variety
+            $image_services = [
+                // Picsum with specific ID and random effects
+                function () use ($i) {
+                    $id = rand(1, 1000) + $i;
+                    $effects = ['', '?grayscale', '?blur=2'];
+                    $effect = $effects[array_rand($effects)];
+                    return "https://picsum.photos/id/{$id}/800/800{$effect}";
+                },
+                // Unsplash with different categories
+                function () use ($i) {
+                    $categories = ['product', 'item', 'technology', 'design', 'retail'];
+                    $category = $categories[$i % count($categories)];
+                    return "https://source.unsplash.com/800x800/?{$category}";
+                },
+                // Dummy image with different colors
+                function () use ($i) {
+                    $colors = [
+                        'cccccc/999999', 'eeeeee/666666', 'dddddd/777777',
+                        'ffffff/333333', 'f5f5f5/555555'
+                    ];
+                    $color = $colors[$i % count($colors)];
+                    return "https://dummyimage.com/800x800/{$color}.jpg&text=Gallery+Image+{$i}";
+                }
+            ];
 
-            $attachment_id = $this->attach_image_from_url($image_url, $product_id, false);
-            if ($attachment_id) {
-                $gallery_image_ids[] = $attachment_id;
+            // Try each service for this gallery image
+            foreach ($image_services as $service) {
+                $image_url = $service();
+
+                // Log attempt
+                $this->log_message('Trying to fetch gallery image from: ' . $image_url);
+
+                // Use WordPress HTTP API directly
+                $response = wp_remote_get($image_url, [
+                    'timeout' => 15,
+                    'sslverify' => false,
+                    'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
+                ]);
+
+                if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
+                    $upload_dir = wp_upload_dir();
+                    $filename = 'gallery-' . $product_id . '-' . $i . '-' . uniqid() . '.jpg';
+                    $file_path = $upload_dir['path'] . '/' . $filename;
+
+                    // Save the image content to a file
+                    $result = file_put_contents($file_path, wp_remote_retrieve_body($response));
+
+                    if ($result) {
+                        // Create attachment
+                        $attachment = [
+                            'post_mime_type' => 'image/jpeg',
+                            'post_title' => sanitize_file_name(pathinfo($filename, PATHINFO_FILENAME)),
+                            'post_content' => '',
+                            'post_status' => 'inherit'
+                        ];
+
+                        $attach_id = wp_insert_attachment($attachment, $file_path, $product_id);
+
+                        if (!is_wp_error($attach_id)) {
+                            // Generate attachment metadata
+                            require_once(ABSPATH . 'wp-admin/includes/image.php');
+                            $attach_data = wp_generate_attachment_metadata($attach_id, $file_path);
+                            wp_update_attachment_metadata($attach_id, $attach_data);
+
+                            $gallery_image_ids[] = $attach_id;
+                            $this->log_message('Successfully added gallery image #' . $i . ' for product #' . $product_id);
+
+                            // Break out of the service loop as we got a successful image
+                            break;
+                        }
+                    }
+                }
+
+                $this->log_message('Failed to get gallery image from: ' . $image_url);
+            }
+
+            // If all services failed for this gallery image, use local placeholder
+            if (empty($gallery_image_ids[$i])) {
+                $local_placeholder = WC_PRODUCT_GENERATOR_PLUGIN_DIR . 'assets/images/placeholder.jpg';
+
+                if (file_exists($local_placeholder)) {
+                    $attach_id = $this->attach_local_image(
+                        $local_placeholder,
+                        $product_id,
+                        false,
+                        "Gallery Image " . ($i + 1)
+                    );
+
+                    if ($attach_id) {
+                        $gallery_image_ids[] = $attach_id;
+                    }
+                } else {
+                    // As last resort, create dynamic image
+                    $attach_id = $this->create_and_attach_dynamic_placeholder(
+                        $product_id,
+                        false,
+                        "Gallery Image " . ($i + 1)
+                    );
+
+                    if ($attach_id) {
+                        $gallery_image_ids[] = $attach_id;
+                    }
+                }
             }
         }
 
+        // Update product gallery
         if (!empty($gallery_image_ids)) {
             update_post_meta($product_id, '_product_image_gallery', implode(',', $gallery_image_ids));
         }
+
+        return $gallery_image_ids;
     }
 
     /**
@@ -319,50 +541,178 @@ class WC_Product_Generator_Core
      */
     private function attach_image_from_url($image_url, $post_id, $is_featured = false)
     {
-        // Check if WP_Http exists
-        if (!class_exists('WP_Http')) {
-            include_once(ABSPATH . WPINC . '/class-http.php');
-        }
+        $this->log_message('Attempting to attach image: ' . $image_url);
 
-        $http = new WP_Http();
-        $response = $http->request($image_url);
-
-        if (is_wp_error($response) || 200 !== $response['response']['code']) {
-            return false;
-        }
-
-        $upload = wp_upload_bits(basename($image_url), null, $response['body']);
-
-        if (!empty($upload['error'])) {
-            return false;
-        }
-
-        $file_path = $upload['file'];
-        $file_name = basename($file_path);
-        $file_type = wp_check_filetype($file_name, null);
-        $attachment_title = sanitize_file_name(pathinfo($file_name, PATHINFO_FILENAME));
-
-        $attachment = array(
-            'post_mime_type' => $file_type['type'],
-            'post_title' => $attachment_title,
-            'post_content' => '',
-            'post_status' => 'inherit',
-            'guid' => $upload['url']
-        );
-
-        $attachment_id = wp_insert_attachment($attachment, $file_path, $post_id);
-
-        if (is_wp_error($attachment_id)) {
-            return false;
-        }
-
-        // Include image.php
+        // Ensure WordPress media functions are available
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-        // Generate attachment metadata
-        $attachment_data = wp_generate_attachment_metadata($attachment_id, $file_path);
-        wp_update_attachment_metadata($attachment_id, $attachment_data);
+        // Download URL to temporary file
+        $tmp = download_url($image_url);
 
+        // If error occurred, try a fallback image
+        if (is_wp_error($tmp)) {
+            $this->log_message('Error downloading image: ' . $tmp->get_error_message(), true);
+
+            // Try a different placeholder service as fallback
+            $fallback_url = 'https://via.placeholder.com/800x800.jpg?text=Product+Image';
+            $this->log_message('Trying fallback image: ' . $fallback_url);
+            $tmp = download_url($fallback_url);
+
+            if (is_wp_error($tmp)) {
+                $this->log_message('Error downloading fallback image: ' . $tmp->get_error_message(), true);
+                return false;
+            }
+        }
+
+        $file_array = array(
+            'name' => basename($image_url),
+            'tmp_name' => $tmp
+        );
+
+        // Upload the image and get the attachment ID
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+
+        // Clean up the temporary file
+        if (file_exists($tmp)) {
+            @unlink($tmp);
+        }
+
+        // If error occurred during upload
+        if (is_wp_error($attachment_id)) {
+            $this->log_message('Error uploading image: ' . $attachment_id->get_error_message(), true);
+            return false;
+        }
+
+        $this->log_message('Successfully created attachment with ID: ' . $attachment_id);
+
+        // Set as featured image if requested
+        if ($is_featured) {
+            set_post_thumbnail($post_id, $attachment_id);
+        }
+
+        return $attachment_id;
+    }
+
+    /**
+     * Helper function for logging
+     */
+    private function log_message($message, $is_error = false)
+    {
+        if ($this->debug || $is_error) {
+            error_log('WC Product Generator: ' . $message);
+        }
+    }
+
+    /**
+     * Attach a local image to a product
+     */
+    private function attach_local_image($image_path, $post_id, $is_featured = false, $title = '')
+    {
+        $this->log_message('Attaching local image: ' . $image_path);
+
+        // Ensure WordPress media functions are available
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+        // Create a unique filename
+        $filename = !empty($title) ? sanitize_title($title) . '.jpg' : 'product-image-' . uniqid() . '.jpg';
+
+        // Create a temporary file
+        $tmp_dir = get_temp_dir();
+        $tmp_file = $tmp_dir . 'wc_product_gen_' . uniqid() . '.jpg';
+
+        if (!copy($image_path, $tmp_file)) {
+            $this->log_message('Failed to copy local image to temp location', true);
+            return false;
+        }
+
+        $file_array = array(
+            'name' => $filename,
+            'tmp_name' => $tmp_file
+        );
+
+        // Add the image to the media library
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+
+        // Clean up
+        if (file_exists($tmp_file)) {
+            @unlink($tmp_file);
+        }
+
+        if (is_wp_error($attachment_id)) {
+            $this->log_message('Error adding local image: ' . $attachment_id->get_error_message(), true);
+            return false;
+        }
+
+        // Set as featured image if requested
+        if ($is_featured) {
+            set_post_thumbnail($post_id, $attachment_id);
+        }
+
+        return $attachment_id;
+    }
+
+    /**
+     * Create and attach a dynamically generated placeholder image
+     */
+    private function create_and_attach_dynamic_placeholder($post_id, $is_featured = false, $text = 'Product Image')
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            $this->log_message('GD library not available for dynamic image creation', true);
+            return false;
+        }
+
+        $this->log_message('Creating dynamic placeholder image for product #' . $post_id);
+
+        // Create directory if it doesn't exist
+        $tmp_dir = get_temp_dir();
+        $tmp_file = $tmp_dir . 'wc_product_generator_' . uniqid() . '.jpg';
+
+        // Create a blank image
+        $image = imagecreatetruecolor(800, 800);
+        $bg_color = imagecolorallocate($image, 240, 240, 240);
+        $text_color = imagecolorallocate($image, 100, 100, 100);
+        imagefill($image, 0, 0, $bg_color);
+
+        // Add text
+        $text = !empty($text) ? $text : 'Product Image';
+        imagestring($image, 5, 300, 400, $text, $text_color);
+
+        // Save image
+        imagejpeg($image, $tmp_file);
+        imagedestroy($image);
+
+        if (!file_exists($tmp_file)) {
+            $this->log_message('Failed to create dynamic image', true);
+            return false;
+        }
+
+        // Add to media library
+        $file_array = array(
+            'name' => 'product-image-' . uniqid() . '.jpg',
+            'tmp_name' => $tmp_file
+        );
+
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+
+        // Clean up
+        if (file_exists($tmp_file)) {
+            @unlink($tmp_file);
+        }
+
+        if (is_wp_error($attachment_id)) {
+            $this->log_message('Error adding dynamic image: ' . $attachment_id->get_error_message(), true);
+            return false;
+        }
+
+        // Set as featured image if requested
         if ($is_featured) {
             set_post_thumbnail($post_id, $attachment_id);
         }
