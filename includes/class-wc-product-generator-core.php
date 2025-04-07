@@ -41,25 +41,34 @@ class WC_Product_Generator_Core
      */
     public function clear_existing_products()
     {
-        global $wpdb;
+        // Get all products using the WooCommerce API
+        $products = wc_get_products([
+            'limit' => -1,
+            'status' => ['publish', 'draft', 'pending', 'private', 'future', 'trash']
+        ]);
 
-        // Get all product IDs
-        $product_ids = $wpdb->get_col(
-            "SELECT ID FROM {$wpdb->posts} 
-            WHERE post_type IN ('product', 'product_variation')"
-        );
-
-        if (empty($product_ids)) {
+        if (empty($products)) {
             return true;
         }
 
-        foreach ($product_ids as $product_id) {
-            wp_delete_post($product_id, true); // Force delete
+        // Track progress for large stores
+        $total = count($products);
+        $deleted = 0;
+
+        // Delete products one by one using the WooCommerce API
+        foreach ($products as $product) {
+            $product->delete(true); // true = force delete
+            $deleted++;
+
+            // Free up memory for large datasets
+            if ($deleted % 100 === 0) {
+                WC_Cache_Helper::get_transient_version('product', true);
+                wp_cache_flush();
+            }
         }
 
-        // Clean up orphaned meta
-        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE post_id NOT IN (SELECT ID FROM {$wpdb->posts})");
-        $wpdb->query("DELETE FROM {$wpdb->term_relationships} WHERE object_id NOT IN (SELECT ID FROM {$wpdb->posts})");
+        // Clear any transients/cache
+        wc_delete_product_transients();
 
         return true;
     }

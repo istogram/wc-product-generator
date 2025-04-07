@@ -26,6 +26,17 @@ define('WC_PRODUCT_GENERATOR_VERSION', '1.0.0');
 define('WC_PRODUCT_GENERATOR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WC_PRODUCT_GENERATOR_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+// Declare compatibility with High-Performance Order Storage (HPOS)
+add_action('before_woocommerce_init', function () {
+    if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'custom_order_tables',
+            __FILE__,
+            true
+        );
+    }
+});
+
 /**
  * Check if WooCommerce is active
  */

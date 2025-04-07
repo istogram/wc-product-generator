@@ -19,6 +19,7 @@ Perfect for testing themes, plugins, or performance benchmarking your WooCommerc
 - Create products with images, categories, and tags
 - Clear all products with a single click
 - Progress tracking for large operations
+- **Compatible with WooCommerce HPOS** (High-Performance Order Storage)
 
 ## Installation
 
@@ -62,6 +63,14 @@ wp wc get stats
 - WooCommerce 3.0 or higher
 - PHP 7.2 or higher
 
+## WooCommerce Compatibility
+
+This plugin is fully compatible with:
+- WooCommerce 3.0+
+- High-Performance Order Storage (HPOS)
+- WooCommerce blocks
+- WooNuxt and other headless implementations
+
 ## FAQ
 
 ### How many products can I generate?
@@ -75,6 +84,10 @@ This plugin is primarily intended for development and testing environments. Whil
 ### How are the product images generated?
 
 The plugin uses placeholder image services (like picsum.photos) to generate unique product images.
+
+### Is this plugin compatible with WooCommerce HPOS?
+
+Yes! This plugin is fully compatible with WooCommerce's High-Performance Order Storage (HPOS) feature.
 
 ## License
 
