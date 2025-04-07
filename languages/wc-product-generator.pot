@@ -1,5 +1,5 @@
 # Copyright (C) 2025 istogram 
-# This file is distributed under the GPL v2 or later.
+# This file is distributed under the MIT license.
 msgid ""
 msgstr ""
 "Project-Id-Version: WooCommerce Product Generator 1.0.0\n"

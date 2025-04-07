@@ -12,8 +12,8 @@
  * Requires PHP: 7.2
  * WC requires at least: 3.0.0
  * WC tested up to: 8.0.0
- * License: GPL v2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * License: MIT
+ * License URI: https://mit-license.org/
  */
 
 // Don't allow direct access
